@@ -1,7 +1,11 @@
 'use client'
+
 import React, { createContext, useContext, useEffect, useState } from 'react'
 import { api } from '@/lib/api'
+import { useToast } from '@/hooks/use-toast'
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001/api'
+
 interface User {
   id: string
   email: string
@@ -9,6 +13,7 @@ interface User {
   lastName: string
   isEmailVerified: boolean
 }
+
 interface AuthContextType {
   user: User | null
   loading: boolean
@@ -17,13 +22,18 @@ interface AuthContextType {
   logout: () => void
   updateUser: (userData: Partial<User>) => void
 }
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const { toast } = useToast()
+
   useEffect(() => {
     checkAuth()
   }, [])
+
   const checkAuth = async () => {
     try {
       const token = localStorage.getItem('token')
@@ -37,27 +47,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     }
   }
+
   const login = async (email: string, password: string) => {
     const response = await api.post('/auth/login', { email, password })
     const { token, user } = response.data
     localStorage.setItem('token', token)
     setUser(user)
   }
+
   const register = async (email: string, password: string, firstName: string, lastName: string) => {
     try {
       console.log('🌐 AuthContext: Making API call to:', `${API_URL}/auth/register`);
       console.log('📤 AuthContext: Request payload:', { email, firstName, lastName, passwordProvided: !!password });
+      
       const response = await api.post('/auth/register', { 
         email, 
         password, 
         firstName, 
         lastName 
       })
+      
       console.log('📥 AuthContext: Response received:', {
         status: response.status,
         statusText: response.statusText,
         data: response.data
       });
+      
       if (response.data.success) {
         const { token, user } = response.data
         localStorage.setItem('token', token)
@@ -84,6 +99,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
         isAxiosError: error.isAxiosError
       });
+      
       if (error.response?.status === 400) {
         const errors = error.response.data.errors
         if (errors && errors.length > 0) {
@@ -102,13 +118,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }
+
   const logout = () => {
     localStorage.removeItem('token')
     setUser(null)
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    })
   }
+
   const updateUser = (userData: Partial<User>) => {
     setUser(prev => prev ? { ...prev, ...userData } : null)
   }
+
   const value = {
     user,
     loading,
@@ -117,12 +140,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logout,
     updateUser
   }
+
   return (
     <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   )
 }
+
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {

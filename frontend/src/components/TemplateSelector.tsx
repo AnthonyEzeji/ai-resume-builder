@@ -1,8 +1,15 @@
 'use client'
+
 import { useState, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CheckIcon, EyeIcon, SparklesIcon, StarIcon } from '@heroicons/react/24/outline'
 import { api } from '@/lib/api'
-import toast from 'react-hot-toast'
+import { useToast } from '@/hooks/use-toast'
+
 interface Template {
   id: string
   name: string
@@ -12,17 +19,19 @@ interface Template {
   features?: string[]
   isPremium?: boolean
 }
+
 interface TemplateSelectorProps {
   selectedTemplate: string
   onTemplateSelect: (templateId: string) => void
-  currentResume?: any 
+  currentResume?: any
   showPreview?: boolean
   size?: 'small' | 'medium' | 'large'
-  columns?: number
+  columns?: 1 | 2 | 3 | 4 | 5
 }
-export default function TemplateSelector({ 
-  selectedTemplate, 
-  onTemplateSelect, 
+
+export default function TemplateSelector({
+  selectedTemplate,
+  onTemplateSelect,
   currentResume,
   showPreview = true,
   size = 'medium',
@@ -32,7 +41,9 @@ export default function TemplateSelector({
   const [filteredTemplates, setFilteredTemplates] = useState<Template[]>([])
   const [selectedCategory, setSelectedCategory] = useState('all')
   const [isLoading, setIsLoading] = useState(true)
-  const [previewTemplate, setPreviewTemplate] = useState<string | null>(null)
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null)
+  const { toast } = useToast()
+
   const categories = [
     { id: 'all', name: 'All Templates' },
     { id: 'modern', name: 'Modern' },
@@ -41,73 +52,67 @@ export default function TemplateSelector({
     { id: 'executive', name: 'Executive' },
     { id: 'minimal', name: 'Minimal' }
   ]
+
   useEffect(() => {
     fetchTemplates()
   }, [])
+
   useEffect(() => {
     if (selectedCategory === 'all') {
       setFilteredTemplates(templates)
     } else {
       setFilteredTemplates(templates.filter(template => template.category === selectedCategory))
     }
-  }, [selectedCategory, templates])
+  }, [templates, selectedCategory])
+
   const fetchTemplates = async () => {
     try {
       setIsLoading(true)
       const response = await api.get('/template')
-      if (response.data.success) {
-        setTemplates(response.data.data)
-        setFilteredTemplates(response.data.data)
-      } else {
-        toast.error('Failed to load templates')
-      }
+      setTemplates(response.data.data)
     } catch (error) {
-      console.error('Error fetching templates:', error)
-      toast.error('Failed to load templates')
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load templates",
+      })
     } finally {
       setIsLoading(false)
     }
   }
+
   const handleTemplateSelect = (templateId: string) => {
     onTemplateSelect(templateId)
   }
+
   const getCardSize = () => {
     switch (size) {
-      case 'small':
-        return 'p-3'
-      case 'large':
-        return 'p-6'
-      default:
-        return 'p-4'
+      case 'small': return 'p-3'
+      case 'large': return 'p-8'
+      default: return 'p-6'
     }
   }
+
   const getPreviewSize = () => {
     switch (size) {
-      case 'small':
-        return 'aspect-[3/4] h-24'
-      case 'large':
-        return 'aspect-[3/4] h-48'
-      default:
-        return 'aspect-[3/4] h-32'
+      case 'small': return 'h-32'
+      case 'large': return 'h-48'
+      default: return 'h-40'
     }
   }
+
   const getGridCols = () => {
     switch (columns) {
-      case 1:
-        return 'grid-cols-1'
-      case 2:
-        return 'grid-cols-1 md:grid-cols-2'
-      case 4:
-        return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
-      case 5:
-        return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-5'
-      default: 
+      case 1: return 'grid-cols-1'
+      case 2: return 'grid-cols-1 md:grid-cols-2'
+      case 4: return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'
+      case 5: return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-5'
+      default:
         return 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3'
     }
   }
+
   const renderTemplatePreview = (template: Template) => {
-    // For now, we'll use placeholder previews
-    // In a real implementation, you'd generate actual preview images
     const previewStyles = {
       modern: 'bg-gradient-to-br from-blue-50 to-white border-l-4 border-blue-500',
       classic: 'bg-gradient-to-br from-gray-50 to-white border-t-2 border-gray-400',
@@ -118,166 +123,170 @@ export default function TemplateSelector({
       academic: 'bg-gradient-to-br from-blue-50 to-white border-t-2 border-blue-600',
       startup: 'bg-gradient-to-br from-orange-50 to-yellow-50 border-l-4 border-orange-500'
     }
-    const previewStyle = previewStyles[template.id as keyof typeof previewStyles] || previewStyles.modern
+
+    const baseStyle = previewStyles[template.id as keyof typeof previewStyles] || previewStyles.modern
+
     return (
-      <div className={`${getPreviewSize()} ${previewStyle} rounded-lg flex flex-col justify-center items-center text-center p-2`}>
-        <div className="w-full space-y-1">
-          <div className="h-2 bg-current opacity-60 rounded w-3/4 mx-auto"></div>
-          <div className="h-1 bg-current opacity-40 rounded w-1/2 mx-auto"></div>
-          <div className="h-1 bg-current opacity-40 rounded w-2/3 mx-auto"></div>
-          <div className="space-y-1 mt-2">
-            <div className="h-1 bg-current opacity-30 rounded w-full"></div>
-            <div className="h-1 bg-current opacity-30 rounded w-4/5"></div>
-            <div className="h-1 bg-current opacity-30 rounded w-3/5"></div>
+      <div className={`${getPreviewSize()} ${baseStyle} rounded-lg relative overflow-hidden`}>
+        <div className="h-full p-4 text-xs space-y-2">
+          <div className="h-3 bg-current opacity-20 rounded w-2/3"></div>
+          <div className="h-2 bg-current opacity-15 rounded w-1/2"></div>
+          <div className="space-y-1 mt-3">
+            <div className="h-1 bg-current opacity-10 rounded w-full"></div>
+            <div className="h-1 bg-current opacity-10 rounded w-3/4"></div>
+            <div className="h-1 bg-current opacity-10 rounded w-5/6"></div>
+          </div>
+          <div className="space-y-1 mt-3">
+            <div className="h-1 bg-current opacity-10 rounded w-2/3"></div>
+            <div className="h-1 bg-current opacity-10 rounded w-1/2"></div>
           </div>
         </div>
       </div>
     )
   }
+
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="animate-pulse">
-          <div className={`grid ${getGridCols()} gap-4`}>
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="border rounded-lg p-4">
-                <div className="aspect-[3/4] bg-gray-200 rounded-lg mb-3"></div>
-                <div className="h-4 bg-gray-200 rounded mb-2"></div>
-                <div className="h-3 bg-gray-200 rounded w-2/3"></div>
-              </div>
-            ))}
-          </div>
+      <div className="space-y-6">
+        <div className="flex justify-center items-center py-12">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
         </div>
       </div>
     )
   }
+
   return (
     <div className="space-y-6">
-      {}
-      <div className="flex flex-wrap gap-2">
-        {categories.map((category) => (
-          <button
-            key={category.id}
-            onClick={() => setSelectedCategory(category.id)}
-            className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-              selectedCategory === category.id
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
-            {category.name}
-          </button>
-        ))}
-      </div>
-      {}
+      <Tabs value={selectedCategory} onValueChange={setSelectedCategory} className="w-full">
+        <TabsList className="grid w-full grid-cols-6">
+          {categories.map((category) => (
+            <TabsTrigger key={category.id} value={category.id} className="text-xs">
+              {category.name}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
       <div className={`grid ${getGridCols()} gap-4`}>
         {filteredTemplates.map((template) => (
-          <div
+          <Card
             key={template.id}
-            className={`relative border-2 rounded-lg ${getCardSize()} cursor-pointer transition-all hover:shadow-md ${
+            className={`relative cursor-pointer transition-all duration-200 hover:shadow-lg ${
               selectedTemplate === template.id
-                ? 'border-blue-500 bg-blue-50 shadow-md'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'ring-2 ring-primary shadow-lg bg-primary/5'
+                : 'hover:bg-muted/50'
             }`}
             onClick={() => handleTemplateSelect(template.id)}
           >
-            {}
             {template.isPremium && (
-              <div className="absolute top-2 left-2 px-2 py-1 bg-yellow-500 text-white text-xs font-medium rounded-full flex items-center z-10">
+              <Badge className="absolute top-2 left-2 z-10 bg-yellow-500 hover:bg-yellow-600">
                 <StarIcon className="w-3 h-3 mr-1" />
                 PRO
-              </div>
+              </Badge>
             )}
-            {}
+            
             {selectedTemplate === template.id && (
-              <div className="absolute top-2 right-2 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center z-10">
-                <CheckIcon className="w-4 h-4 text-white" />
+              <div className="absolute top-2 right-2 z-10">
+                <div className="bg-primary text-primary-foreground rounded-full p-1">
+                  <CheckIcon className="w-4 h-4" />
+                </div>
               </div>
             )}
-            {}
-            {showPreview && renderTemplatePreview(template)}
-            {}
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-1">
-                <h3 className={`font-semibold text-gray-900 ${size === 'small' ? 'text-sm' : 'text-base'}`}>
+
+            <CardHeader className={getCardSize()}>
+              {showPreview && renderTemplatePreview(template)}
+            </CardHeader>
+
+            <CardContent className={`${getCardSize()} pt-0`}>
+              <div className="space-y-2">
+                <CardTitle className={`${size === 'small' ? 'text-sm' : 'text-base'} font-semibold`}>
                   {template.name}
-                </h3>
-                {template.id === 'creative' && (
-                  <SparklesIcon className="w-4 h-4 text-purple-500" />
+                </CardTitle>
+                
+                {size !== 'small' && (
+                  <CardDescription className="text-xs text-muted-foreground line-clamp-2">
+                    {template.description}
+                  </CardDescription>
                 )}
-              </div>
-              <p className={`text-gray-600 mb-2 ${size === 'small' ? 'text-xs' : 'text-sm'}`}>
-                {template.description}
-              </p>
-              {}
-              {template.features && template.features.length > 0 && size !== 'small' && (
-                <div className="mb-2">
-                  <div className="flex flex-wrap gap-1">
-                    {template.features.slice(0, 2).map((feature, index) => (
-                      <span
-                        key={index}
-                        className="inline-block px-2 py-1 bg-blue-50 text-blue-700 text-xs rounded"
-                      >
-                        {feature}
-                      </span>
-                    ))}
-                    {template.features.length > 2 && (
-                      <span className="text-xs text-gray-500">
-                        +{template.features.length - 2} more
-                      </span>
-                    )}
+
+                {template.features && template.features.length > 0 && size !== 'small' && (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-1">
+                      {template.features.slice(0, 2).map((feature, index) => (
+                        <Badge key={index} variant="secondary" className="text-xs px-2 py-0">
+                          {feature}
+                        </Badge>
+                      ))}
+                      {template.features.length > 2 && (
+                        <span className="text-xs text-muted-foreground">
+                          +{template.features.length - 2} more
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
-              <div className="flex items-center justify-between">
-                <span className={`inline-block px-2 py-1 bg-gray-100 text-gray-700 rounded ${size === 'small' ? 'text-xs' : 'text-xs'}`}>
-                  {template.category}
-                </span>
-                {showPreview && currentResume && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setPreviewTemplate(template.id)
-                    }}
-                    className="text-blue-600 hover:text-blue-700 p-1"
-                    title="Preview with your data"
-                  >
-                    <EyeIcon className="w-4 h-4" />
-                  </button>
                 )}
+
+                <div className="flex items-center justify-between pt-2">
+                  <Badge variant="outline" className="text-xs">
+                    {template.category}
+                  </Badge>
+                  
+                  {showPreview && currentResume && (
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-6 px-2"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setPreviewTemplate(template)
+                          }}
+                        >
+                          <EyeIcon className="w-3 h-3 mr-1" />
+                          Preview
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Preview: {template.name}</DialogTitle>
+                          <DialogDescription>
+                            See how your resume would look with this template
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="bg-muted p-8 rounded-lg">
+                          <div className="bg-white shadow-lg mx-auto max-w-2xl">
+                            <div className="p-8 text-sm">
+                              <div className="text-center mb-6">
+                                <h1 className="text-2xl font-bold">{currentResume?.personalInfo?.firstName} {currentResume?.personalInfo?.lastName}</h1>
+                                <p className="text-muted-foreground">{currentResume?.personalInfo?.email}</p>
+                              </div>
+                              <p className="text-xs text-muted-foreground text-center">
+                                This is a preview showing how your resume data would appear in the {template.name} template.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </div>
               </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
-      {filteredTemplates.length === 0 && !isLoading && (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No templates found in this category.</p>
-        </div>
-      )}
-      {}
-      {previewTemplate && currentResume && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-4xl max-h-[90vh] overflow-auto">
-            <div className="p-4 border-b flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
-                Preview: {templates.find(t => t.id === previewTemplate)?.name}
-              </h3>
-              <button
-                onClick={() => setPreviewTemplate(null)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="p-6">
-              {}
-              <div className="text-center text-gray-500">
-                Template preview with your resume data would appear here
-              </div>
-            </div>
-          </div>
-        </div>
+
+      {filteredTemplates.length === 0 && (
+        <Card className="text-center py-12">
+          <CardContent>
+            <SparklesIcon className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No templates found</h3>
+            <p className="text-muted-foreground">
+              Try selecting a different category or check back later for new templates.
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   )
